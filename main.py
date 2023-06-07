@@ -27,8 +27,6 @@ sp_username = os.environ["SP_USERNAME"]
 playlist_id = os.environ["PLAYLIST_ID"]
 ##
 
-# SCHEDULED TO RUN 00:00 EVERY MONDAY (https://towardsdatascience.com/how-to-schedule-python-scripts-with-cron-the-only-guide-youll-ever-need-deea2df63b4e)
-
 
 ## YOUTUBE CHANNELS TO SEARCH
 # GET CHANNEL ID HERE --->  https://www.streamweasels.com/tools/youtube-channel-id-and-user-id-convertor/
