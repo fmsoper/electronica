@@ -9,6 +9,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
         - name: checkout repo content
+            with:
+                fetch-depth: 1
             uses: actions/checkout@v2 # checkout the repository content
     
         - name: setup python
