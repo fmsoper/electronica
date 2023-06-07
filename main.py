@@ -59,7 +59,7 @@ max_no = 100 #maximum number of songs in the spotify playlist
 
 ## ACCESSING API'S
 youtube = build('youtube','v3',developerKey=YT_API_KEY)
-
+quit()
 SP_cred = spotipy.oauth2.SpotifyClientCredentials(SP_CLIENT_ID, SP_CLIENT_SECRET)
 token = spotipy.util.prompt_for_user_token(sp_username,
                            'playlist-modify-private',
