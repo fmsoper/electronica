@@ -59,7 +59,7 @@ max_no = 100 #maximum number of songs in the spotify playlist
 
 ## ACCESSING API'S
 youtube = build('youtube','v3',developerKey=YT_API_KEY)
-quit()
+#quit()
 SP_cred = spotipy.oauth2.SpotifyClientCredentials(SP_CLIENT_ID, SP_CLIENT_SECRET)
 token = spotipy.util.prompt_for_user_token(sp_username,
                            'playlist-modify-private',
@@ -74,7 +74,7 @@ sp = spotipy.Spotify(auth=token)
 # to pass to the Spotify API
 print("\nExtracting channel uploads...")
 tracklist = utils.extract_tracklist(youtube, channels, no_vids_each, sync_days)
-
+quit()
 # For each query, we search Spotify and add the top song result to
 # a dataframe, containing the artist(s), track name, and track ID
 print("\nFinding Spotify ID's...\n")
