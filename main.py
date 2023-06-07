@@ -1,22 +1,29 @@
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
+#import warnings
+#warnings.simplefilter(action='ignore', category=FutureWarning)
 
 from datetime import date
 
 import spotipy
-import spotipy.util
-import spotipy.oauth2
+#import spotipy.util
+#import spotipy.oauth2
 from googleapiclient.discovery import build
 
 import utils
 
 ## CREDENTIALS
-YT_API_KEY = "REDACTED"
-SP_CLIENT_ID = "8eb8231176dd446e9d7bcad802808a64"
-SP_CLIENT_SECRET = "REDACTED"
+#YT_API_KEY = "REDACTED"
+#SP_CLIENT_ID = "8eb8231176dd446e9d7bcad802808a64"
+#SP_CLIENT_SECRET = "REDACTED"
 
-sp_username = "fredsphatbeets"
-playlist_id = "4dhau7ZcU6QWlX6qTUjT2y"
+YT_API_KEY = os.environ["YT_API_KEY"]
+SP_CLIENT_ID = os.environ["SP_CLIENT_ID"]
+SP_CLIENT_SECRET = os.environ["SP_CLIENT_SECRET"]
+
+#sp_username = "fredsphatbeets"
+#playlist_id = "4dhau7ZcU6QWlX6qTUjT2y"
+
+sp_username = os.environ["SP_USERNAME"]
+playlist_id = os.environ["PLAYLIST_ID"]
 ##
 
 # SCHEDULED TO RUN 00:00 EVERY MONDAY (https://towardsdatascience.com/how-to-schedule-python-scripts-with-cron-the-only-guide-youll-ever-need-deea2df63b4e)
