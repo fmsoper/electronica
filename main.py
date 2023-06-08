@@ -5,6 +5,7 @@ import os
 from datetime import date
 
 import spotipy
+from spotipy.oauth2 import SpotifyOAuth
 #import spotipy.util
 #import spotipy.oauth2
 from googleapiclient.discovery import build
@@ -19,6 +20,9 @@ import utils
 YT_API_KEY = os.environ["YT_API_KEY"]
 SP_CLIENT_ID = os.environ["SP_CLIENT_ID"]
 SP_CLIENT_SECRET = os.environ["SP_CLIENT_SECRET"]
+ACCESS_TOKEN = os.environ["ACCESS_TOKEN"]
+REFRESH_TOKEN = os.environ["REFRESH_TOKEN"]
+REDIRECT_URI = os.environ["REDIRECT_URI"]
 
 #sp_username = "fredsphatbeets"
 #playlist_id = "4dhau7ZcU6QWlX6qTUjT2y"
@@ -59,14 +63,25 @@ max_no = 100 #maximum number of songs in the spotify playlist
 
 ## ACCESSING API'S
 youtube = build('youtube','v3',developerKey=YT_API_KEY)
-#quit()
-SP_cred = spotipy.oauth2.SpotifyClientCredentials(SP_CLIENT_ID, SP_CLIENT_SECRET)
-token = spotipy.util.prompt_for_user_token(sp_username,
-                           'playlist-modify-private',
-                           client_id=SP_CLIENT_ID,
-                           client_secret=SP_CLIENT_SECRET,
-                           redirect_uri='http://localhost:8888/callback')
-sp = spotipy.Spotify(auth=token)
+
+auth_manager = SpotifyOAuth(
+    client_id=SP_CLIENT_ID,
+    client_secret=SP_CLIENT_SECRET,
+    redirect_uri=REDIRECT_URI,
+    scope='playlist-modify-private',
+    username=sp_username,
+    access_token=ACCESS_TOKEN,
+    refresh_token=REFRESH_TOKEN
+)
+auth_manager.refresh_access_token(REFRESH_TOKEN)
+sp = spotipy.Spotify(auth_manager=auth_manager)
+#SP_cred = spotipy.oauth2.SpotifyClientCredentials(SP_CLIENT_ID, SP_CLIENT_SECRET)
+#token = spotipy.util.prompt_for_user_token(sp_username,
+#                           'playlist-modify-private',
+#                           client_id=SP_CLIENT_ID,
+#                           client_secret=SP_CLIENT_SECRET,
+#                           redirect_uri='http://localhost:8888/callback')
+#sp = spotipy.Spotify(auth=token)
 ##
 
 
@@ -74,7 +89,7 @@ sp = spotipy.Spotify(auth=token)
 # to pass to the Spotify API
 print("\nExtracting channel uploads...")
 tracklist = utils.extract_tracklist(youtube, channels, no_vids_each, sync_days)
-quit()
+
 # For each query, we search Spotify and add the top song result to
 # a dataframe, containing the artist(s), track name, and track ID
 print("\nFinding Spotify ID's...\n")
