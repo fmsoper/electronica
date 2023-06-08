@@ -67,6 +67,7 @@ youtube = build('youtube','v3',developerKey=YT_API_KEY)
 auth_manager = SpotifyOAuth(
     client_id=SP_CLIENT_ID,
     client_secret=SP_CLIENT_SECRET,
+    redirect_uri=REDIRECT_URI,
     scope='playlist-modify-private',
     username=sp_username,
 )
