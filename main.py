@@ -70,6 +70,8 @@ auth_manager = SpotifyOAuth(
     redirect_uri=REDIRECT_URI,
     scope='playlist-modify-private',
     username=sp_username,
+    access_token=ACCESS_TOKEN,
+    refresh_token=REFRESH_TOKEN
 )
 auth_manager.token_info["access_token"] = ACCESS_TOKEN
 auth_manager.token_info["refresh_token"] = REFRESH_TOKEN
