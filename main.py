@@ -13,22 +13,26 @@ from googleapiclient.discovery import build
 import utils
 
 ## CREDENTIALS
-#YT_API_KEY = "REDACTED"
-#SP_CLIENT_ID = "8eb8231176dd446e9d7bcad802808a64"
-#SP_CLIENT_SECRET = "REDACTED"
+YT_API_KEY = "REDACTED"
+SP_CLIENT_ID = "8eb8231176dd446e9d7bcad802808a64"
+SP_CLIENT_SECRET = "REDACTED"
+REFRESH_TOKEN = "REDACTED"
+REDIRECT_URI = "http://example.com"
+scope = 'playlist-modify-private'
 
-YT_API_KEY = os.environ["YT_API_KEY"]
-SP_CLIENT_ID = os.environ["SP_CLIENT_ID"]
-SP_CLIENT_SECRET = os.environ["SP_CLIENT_SECRET"]
-ACCESS_TOKEN = os.environ["ACCESS_TOKEN"]
-REFRESH_TOKEN = os.environ["REFRESH_TOKEN"]
-REDIRECT_URI = os.environ["REDIRECT_URI"]
 
-#sp_username = "fredsphatbeets"
-#playlist_id = "4dhau7ZcU6QWlX6qTUjT2y"
+#YT_API_KEY = os.environ["YT_API_KEY"]
+#SP_CLIENT_ID = os.environ["SP_CLIENT_ID"]
+#SP_CLIENT_SECRET = os.environ["SP_CLIENT_SECRET"]
+#ACCESS_TOKEN = os.environ["ACCESS_TOKEN"]
+#REFRESH_TOKEN = os.environ["REFRESH_TOKEN"]
+#REDIRECT_URI = os.environ["REDIRECT_URI"]
 
-sp_username = os.environ["SP_USERNAME"]
-playlist_id = os.environ["PLAYLIST_ID"]
+sp_username = "fredsphatbeets"
+playlist_id = "4dhau7ZcU6QWlX6qTUjT2y"
+
+#sp_username = os.environ["SP_USERNAME"]
+#playlist_id = os.environ["PLAYLIST_ID"]
 ##
 
 
@@ -71,7 +75,7 @@ auth_manager = SpotifyOAuth(
     scope='playlist-modify-private',
     username=sp_username,
 )
-auth_manager.refresh_access_token(REFRESH_TOKEN)
+auth_manager.refresh_access_token(REFRESH_TOKEN) 
 #auth_manager.token_info["access_token"] = ACCESS_TOKEN
 #auth_manager.token_info["refresh_token"] = REFRESH_TOKEN
 sp = spotipy.Spotify(auth_manager=auth_manager)

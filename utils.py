@@ -163,7 +163,7 @@ def find_track_ids(spotify, tracklist):
                                         'ID':id}, ignore_index=True)
 
     complete_tracklist = tracklist.sort_values('Upload Time', ascending=False, ignore_index=True)
-    complete_tracklist.to_csv('tracklist.csv', index=False)
+    #complete_tracklist.to_csv('tracklist.csv', index=False)
     print(complete_tracklist.shift()[1:])
 
     return track_ids
