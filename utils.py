@@ -123,9 +123,9 @@ def extract_tracklist(youtube, channels, num_vids_each, sync_days):
                     tracklist.append(track)
             except: pass
 
-        tracklist = pd.DataFrame(tracklist)
         print(username + " : DONE")
-
+        
+    tracklist = pd.DataFrame(tracklist)
     pd.set_option("display.max_rows", 1000)
 
     expiry_date = (date.today() - timedelta(days=sync_days)).strftime("%Y%m%d%H%M%S")
