@@ -99,8 +99,7 @@ def extract_tracklist(youtube, channels, num_vids_each, sync_days):
     Produce a dataframe containing the artists and track names for the latest uploaded videos
     """
 
-    #tracklist = pd.DataFrame(columns = ['Artist(s)', 'Title', 'Upload Time', 'Channel'])
-    tmp = [] #temporary list for deprecated pandas append
+    tracklist = []
 
     for username, channelId in channels.items():
         contentdata = youtube.channels().list(id=channelId,part='contentDetails').execute()
@@ -115,17 +114,16 @@ def extract_tracklist(youtube, channels, num_vids_each, sync_days):
             try:
                 video_details = extract_details(video)
                 if video_details != None:
-                    track = {'Artist(s)':video_details[0],
-                             'Title':video_details[1],
-                             'Upload Time':video_details[2],
-                             'Channel':username}
-                    tmp.append(track)
-                    #tracklist = tracklist.append({'Artist(s)':video_details[0],
-                    #                        'Title':video_details[1],
-                    #                        'Upload Time':video_details[2],
-                    #                        'Channel':username}, ignore_index=True)
+                    track = {
+                        'Artist(s)':video_details[0],
+                        'Title':video_details[1],
+                        'Upload Time':video_details[2],
+                        'Channel':username
+                    }
+                    tracklist.append(track)
             except: pass
-        tracklist = pd.DataFrame(tmp)
+
+        tracklist = pd.DataFrame(tracklist)
         print(username + " : DONE")
 
     pd.set_option("display.max_rows", 1000)
@@ -141,7 +139,6 @@ def extract_tracklist(youtube, channels, num_vids_each, sync_days):
 
 def find_track_ids(spotify, tracklist):
     track_ids = []
-    #track_ids = pd.DataFrame(columns = ['Artist(s)', 'Track', 'ID'])
     tracklist["On Spotify"] = ""
 
     for index, row in tracklist.iterrows():
@@ -153,7 +150,6 @@ def find_track_ids(spotify, tracklist):
             continue
         else:
             tracklist.at[index, "On Spotify"] = 'Yes'
-
             id = search_output["tracks"]["items"][0]["id"]
             
             try:
@@ -161,18 +157,19 @@ def find_track_ids(spotify, tracklist):
             except:
                 tracklist.at[index, "On Spotify"] = 'Error'
                 continue
+
             artists = []
             for i in range(0, len(track["artists"])):
                 artists.append(track["artists"][i]["name"])
             artists = ", ".join(artists)
 
             track_ids.append(
-                {'Artist(s)':artists,
-                 'Track':track["name"],
-                 'ID':id})
-            #track_ids = track_ids.append({'Artist(s)':artists,
-            #                            'Track':track["name"],
-            #                            'ID':id}, ignore_index=True)
+                {
+                    'Artist(s)':artists,
+                    'Track':track["name"],
+                    'ID':id
+                }
+            )
     
     track_ids = pd.DataFrame(track_ids)
 
