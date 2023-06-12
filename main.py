@@ -21,7 +21,7 @@ REDIRECT_URI = "http://example.com"
 scope = 'playlist-modify-private'
 
 
-#YT_API_KEY = os.environ["YT_API_KEY"]
+#YT_API_KEY = os.environ["YT_API_KEY"]  
 #SP_CLIENT_ID = os.environ["SP_CLIENT_ID"]
 #SP_CLIENT_SECRET = os.environ["SP_CLIENT_SECRET"]
 #ACCESS_TOKEN = os.environ["ACCESS_TOKEN"]

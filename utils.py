@@ -99,7 +99,8 @@ def extract_tracklist(youtube, channels, num_vids_each, sync_days):
     Produce a dataframe containing the artists and track names for the latest uploaded videos
     """
 
-    tracklist = pd.DataFrame(columns = ['Artist(s)', 'Title', 'Upload Time', 'Channel'])
+    #tracklist = pd.DataFrame(columns = ['Artist(s)', 'Title', 'Upload Time', 'Channel'])
+    tmp = [] #temporary list for deprecated pandas append
 
     for username, channelId in channels.items():
         contentdata = youtube.channels().list(id=channelId,part='contentDetails').execute()
@@ -114,11 +115,17 @@ def extract_tracklist(youtube, channels, num_vids_each, sync_days):
             try:
                 video_details = extract_details(video)
                 if video_details != None:
-                    tracklist = tracklist.append({'Artist(s)':video_details[0],
-                                            'Title':video_details[1],
-                                            'Upload Time':video_details[2],
-                                            'Channel':username}, ignore_index=True)
+                    track = {'Artist(s)':video_details[0],
+                             'Title':video_details[1],
+                             'Upload Time':video_details[2],
+                             'Channel':username}
+                    tmp.append(track)
+                    #tracklist = tracklist.append({'Artist(s)':video_details[0],
+                    #                        'Title':video_details[1],
+                    #                        'Upload Time':video_details[2],
+                    #                        'Channel':username}, ignore_index=True)
             except: pass
+        tracklist = pd.DataFrame(tmp)
         print(username + " : DONE")
 
     pd.set_option("display.max_rows", 1000)
