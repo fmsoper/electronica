@@ -140,7 +140,8 @@ def extract_tracklist(youtube, channels, num_vids_each, sync_days):
 
 
 def find_track_ids(spotify, tracklist):
-    track_ids = pd.DataFrame(columns = ['Artist(s)', 'Track', 'ID'])
+    track_ids = []
+    #track_ids = pd.DataFrame(columns = ['Artist(s)', 'Track', 'ID'])
     tracklist["On Spotify"] = ""
 
     for index, row in tracklist.iterrows():
@@ -165,9 +166,15 @@ def find_track_ids(spotify, tracklist):
                 artists.append(track["artists"][i]["name"])
             artists = ", ".join(artists)
 
-            track_ids = track_ids.append({'Artist(s)':artists,
-                                        'Track':track["name"],
-                                        'ID':id}, ignore_index=True)
+            track_ids.append(
+                {'Artist(s)':artists,
+                 'Track':track["name"],
+                 'ID':id})
+            #track_ids = track_ids.append({'Artist(s)':artists,
+            #                            'Track':track["name"],
+            #                            'ID':id}, ignore_index=True)
+    
+    track_ids = pd.DataFrame(track_ids)
 
     complete_tracklist = tracklist.sort_values('Upload Time', ascending=False, ignore_index=True)
     #complete_tracklist.to_csv('tracklist.csv', index=False)
