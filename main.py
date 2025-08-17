@@ -18,7 +18,7 @@ SP_CLIENT_ID = "8eb8231176dd446e9d7bcad802808a64"
 SP_CLIENT_SECRET = "REDACTED"
 REFRESH_TOKEN = "REDACTED"
 REDIRECT_URI = "http://example.com"
-scope = 'playlist-modify-public'
+scope = "playlist-modify-public playlist-modify-private"
 
 
 #YT_API_KEY = os.environ["YT_API_KEY"]  
