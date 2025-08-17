@@ -18,7 +18,6 @@ SP_CLIENT_ID = "8eb8231176dd446e9d7bcad802808a64"
 SP_CLIENT_SECRET = "REDACTED"
 REFRESH_TOKEN = "REDACTED"
 REDIRECT_URI = "http://example.com"
-scope = "playlist-modify-public playlist-modify-private"
 
 
 #YT_API_KEY = os.environ["YT_API_KEY"]  
@@ -72,7 +71,7 @@ auth_manager = SpotifyOAuth(
     client_id=SP_CLIENT_ID,
     client_secret=SP_CLIENT_SECRET,
     redirect_uri=REDIRECT_URI,
-    scope='playlist-modify-private',
+    scope='playlist-modify-public',
     username=sp_username,
 )
 auth_manager.refresh_access_token(REFRESH_TOKEN) 
