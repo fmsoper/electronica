@@ -74,7 +74,7 @@ auth_manager = SpotifyOAuth(
     scope='playlist-modify-public',
     username=sp_username,
 )
-auth_manager.refresh_access_token(REFRESH_TOKEN) 
+#auth_manager.refresh_access_token(REFRESH_TOKEN) 
 sp = spotipy.Spotify(auth_manager=auth_manager)
 
 
