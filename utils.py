@@ -1,183 +1,200 @@
+import logging
+from datetime import datetime, timedelta
+from typing import Optional
+
 import pandas as pd
-from datetime import date, timedelta
 
-def extract_details(video):
-    """ 
-    Extract artists, track name, and publish date from video
+logger = logging.getLogger(__name__)
+
+# Tags that mark a bracketed group as a remix/edit credit worth keeping
+# (and pulling extra artist names out of), e.g. "(Some DJ Remix)".
+WHITELIST_TAGS = [
+    " feat.", " ft.", " feat", " ft",
+    " edit", " mix", " remix",
+    " tweak", " flip", " dub", " re-edit",
+]
+# If a bracketed group starts with one of these words, it's a plain
+# version tag (e.g. "(Extended Mix)") rather than a remix credit, and
+# gets discarded instead of mined for artist names.
+BLACKLIST_TAGS = ["extended", "original", "radio", "promo", "premiere"]
+
+# Separators between multiple artists in the "Artist - Title" part of a
+# title, normalised down to " & " before splitting into a list.
+ARTIST_SEPARATORS = [
+    " feat. ", " ft. ", " feat ", " ft ",
+    " , ", ", ", " x ", " X ", " vs. ", " vs ",
+]
+# Leftover feat/ft fragments to strip from the track name once any bracketed
+# remix credits have already been pulled out of it.
+FEAT_FRAGMENTS = [" feat. ", " ft. ", " feat ", " ft "]
+
+
+def _extract_bracket_content(text: str, open_char: str, close_char: str) -> tuple[str, list[str]]:
     """
+    Repeatedly strip bracketed groups (e.g. "(...)" or "[...]") out of `text`.
 
-    whitelist = [" feat."," ft.", " feat",
-                " edit", " mix", " remix",
-                " tweak", " flip", " dub", " re-edit"]
-    blacklist = ["extended", "original", "radio", "promo", "premiere"]
+    A group is treated as a remix/edit credit - and mined for extra artist
+    names - if it contains one of WHITELIST_TAGS and doesn't start with a
+    BLACKLIST_TAGS word (e.g. "(Some DJ Remix)" keeps "Some DJ" as an extra
+    artist, "(Extended Mix)" is just discarded). Anything else in brackets
+    is discarded outright (feature credits, random annotations, etc).
 
-
-    video_title = video['snippet']['title'].lower()
-    
-
-    # case for when || in title, as for "bluedollarbillz" channel
-    if " || " in video_title:
-        video_title = video_title.split(" || ", 1)[0]
-
-    # case for when || in title, as for "some uncertain sir" channel
-    if " | " in video_title:
-        video_title = video_title.split(" | ", 1)[0]
-    for word in blacklist:
-        video_title = video_title.replace("["+word+"]","")
-
-    if " - " not in video_title:
-        artists, track_name, video_date = "","",""
-    elif "(" and ")" in video_title and " - " in video_title.split("(", 1)[1].split(")")[0]:
-        artists, track_name, video_date = "","",""
-    elif "[" and "]" in video_title and " - " in video_title.split("[", 1)[1].split("]")[0]:
-        artists, track_name, video_date = "","",""
-    else:
-        video_title = video_title.split(" - ", 1)
-
-
-        video_date = video['snippet']['publishedAt']
-        for ele in ["-", "T", ":", "Z"]:
-            video_date = video_date.replace(ele,"")
-
-
-        artists = video_title[0]
-        for ele in [" feat. ", " ft. ", " feat ", " ft ",
-                    " , ", ", ", " x ", " X ", " vs. ", " vs "]:
-            artists = artists.replace(ele," & ")
-        artists = artists.split(" & ")
-
-
-        track_name = video_title[1]
-        while "(" and ")" in track_name:
-            round_brackets = track_name.split("(", 1)[1].split(")")[0]
-            track_name = track_name.replace("("+round_brackets+")","")
-            
-            if any(word in round_brackets for word in whitelist):
-                if round_brackets.split(" ")[0] in blacklist:
-                    round_brackets = ""
-                else:
-                    for word in whitelist:
-                        round_brackets = round_brackets.replace(word,"")
-            else:
-                round_brackets = ""
-            
-            extra_artists = round_brackets.split(" & ")
-            artists.extend(extra_artists)
-
-        while "[" and "]" in track_name:
-            square_brackets = track_name.split("[", 1)[1].split("]")[0]
-            track_name = track_name.replace("["+square_brackets+"]","")
-            
-            if any(word in square_brackets for word in whitelist):
-                if square_brackets.split(" ")[0] in blacklist:
-                    square_brackets = ""
-                else:
-                    for word in whitelist:
-                        square_brackets = square_brackets.replace(word,"")
-            else:
-                square_brackets = ""
-            
-            extra_artists = square_brackets.split(" & ")
-            artists.extend(extra_artists)
-        
-        for ele in [" feat. ", " ft. ", " feat ", " ft "]:
-            track_name.replace(ele," ")
-
-
-        artists = [x.strip() for x in artists if x.strip()]
-        artists = " ".join(str(e) for e in artists)
-
-        return [artists, track_name, video_date]
-
-
-
-
-
-
-def extract_tracklist(youtube, channels, num_vids_each, sync_days):
+    Returns (text_with_brackets_removed, list_of_extra_artist_names).
     """
-    Produce a dataframe containing the artists and track names for the latest uploaded videos
-    """
+    extra_artists: list[str] = []
 
+    while open_char in text and close_char in text:
+        inner = text.split(open_char, 1)[1].split(close_char, 1)[0]
+        text = text.replace(f"{open_char}{inner}{close_char}", "")
+
+        is_remix_tag = any(tag in inner for tag in WHITELIST_TAGS)
+        starts_with_blacklisted = inner.split(" ")[0] in BLACKLIST_TAGS
+
+        if is_remix_tag and not starts_with_blacklisted:
+            for tag in WHITELIST_TAGS:
+                inner = inner.replace(tag, "")
+            extra_artists.extend(inner.split(" & "))
+
+    return text, extra_artists
+
+
+def extract_details(video: dict) -> Optional[dict]:
+    """
+    Extract artist(s), track name, and upload time from a YouTube video's
+    snippet, assuming an "Artist - Title" style upload title.
+
+    Returns None if the title doesn't look like that format at all (no
+    " - "), or if the only " - " present is inside a bracketed tag rather
+    than separating an artist from a title.
+    """
+    title = video["snippet"]["title"].lower()
+
+    # Some channels append extra context after " | " or " || " - drop it.
+    for separator in (" || ", " | "):
+        if separator in title:
+            title = title.split(separator, 1)[0]
+
+    for tag in BLACKLIST_TAGS:
+        title = title.replace(f"[{tag}]", "")
+
+    has_round_brackets = "(" in title and ")" in title
+    has_square_brackets = "[" in title and "]" in title
+
+    dash_in_round_brackets = has_round_brackets and " - " in title.split("(", 1)[1].split(")", 1)[0]
+    dash_in_square_brackets = has_square_brackets and " - " in title.split("[", 1)[1].split("]", 1)[0]
+
+    if " - " not in title or dash_in_round_brackets or dash_in_square_brackets:
+        return None
+
+    artist_part, track_part = title.split(" - ", 1)
+
+    upload_time = datetime.strptime(video["snippet"]["publishedAt"], "%Y-%m-%dT%H:%M:%SZ")
+
+    artists = artist_part
+    for separator in ARTIST_SEPARATORS:
+        artists = artists.replace(separator, " & ")
+    artists = [a.strip() for a in artists.split(" & ") if a.strip()]
+
+    track_name, round_extra_artists = _extract_bracket_content(track_part, "(", ")")
+    track_name, square_extra_artists = _extract_bracket_content(track_name, "[", "]")
+    artists.extend(round_extra_artists)
+    artists.extend(square_extra_artists)
+
+    for fragment in FEAT_FRAGMENTS:
+        track_name = track_name.replace(fragment, " ")
+    track_name = " ".join(track_name.split())  # collapse any leftover double spaces
+
+    return {
+        "Artist(s)": " & ".join(a.strip() for a in artists if a.strip()),
+        "Title": track_name,
+        "Upload Time": upload_time,
+    }
+
+
+def extract_tracklist(youtube, channels: dict, num_vids_each: int, sync_days: int) -> pd.DataFrame:
+    """
+    Produce a dataframe of artist/track/upload-time/channel for each
+    channel's videos uploaded within the last `sync_days` days.
+    """
     tracklist = []
 
-    for username, channelId in channels.items():
-        contentdata = youtube.channels().list(id=channelId,part='contentDetails').execute()
-        playlist_id = contentdata['items'][0]['contentDetails']['relatedPlaylists']['uploads']
+    for channel_name, channel_id in channels.items():
+        channel_data = youtube.channels().list(id=channel_id, part="contentDetails").execute()
+        uploads_playlist_id = channel_data["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
 
+        playlist_items = youtube.playlistItems().list(
+            playlistId=uploads_playlist_id,
+            part="snippet",
+            maxResults=num_vids_each,
+        ).execute()
 
-        res = youtube.playlistItems().list(playlistId=playlist_id,
-                                            part='snippet',
-                                            maxResults=num_vids_each).execute()
-
-        for video in res['items']:
+        for video in playlist_items["items"]:
             try:
-                video_details = extract_details(video)
-                if video_details != None:
-                    track = {
-                        'Artist(s)':video_details[0],
-                        'Title':video_details[1],
-                        'Upload Time':video_details[2],
-                        'Channel':username
-                    }
-                    tracklist.append(track)
-            except: pass
+                details = extract_details(video)
+            except (KeyError, IndexError) as e:
+                logger.warning("Skipping an unparseable video on %s: %s", channel_name, e)
+                continue
 
-        print(username + " : DONE")
-        
-    tracklist = pd.DataFrame(tracklist)
+            if details is not None:
+                details["Channel"] = channel_name
+                tracklist.append(details)
+
+        logger.info("%s: done", channel_name)
+
+    columns = ["Artist(s)", "Title", "Upload Time", "Channel"]
+    tracklist_df = pd.DataFrame(tracklist, columns=columns)
+
+    if tracklist_df.empty:
+        return tracklist_df
+
     pd.set_option("display.max_rows", 1000)
+    cutoff = datetime.now() - timedelta(days=sync_days)
+    tracklist_df = tracklist_df[tracklist_df["Upload Time"] >= cutoff]
 
-    expiry_date = (date.today() - timedelta(days=sync_days)).strftime("%Y%m%d%H%M%S")
-    tracklist = tracklist[ tracklist['Upload Time'] >= expiry_date ]
-
-    return tracklist.sort_values('Upload Time', ascending=False, ignore_index=True)
-
+    return tracklist_df.sort_values("Upload Time", ascending=False, ignore_index=True)
 
 
+def find_track_ids(spotify, tracklist: pd.DataFrame, market: str = "GB") -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    For each row in `tracklist`, search Spotify for a matching track.
 
-
-def find_track_ids(spotify, tracklist):
+    Returns (track_ids, annotated_tracklist):
+      - track_ids: dataframe of just the tracks that were found, with their Spotify IDs.
+      - annotated_tracklist: a *copy* of `tracklist` (the caller's dataframe is left
+        untouched) with an added "On Spotify" column ("Yes" / "No" / "Error").
+    """
     track_ids = []
+    tracklist = tracklist.copy()
     tracklist["On Spotify"] = ""
 
     for index, row in tracklist.iterrows():
-        query = "track:" +str(row['Title']) + " " + "artist:" + str(row['Artist(s)'])
+        query = f"track:{row['Title']} artist:{row['Artist(s)']}"
 
-        search_output = spotify.search(q=query, type="track", limit=1, market='GB')
-        if search_output["tracks"]["total"] == 0:
-            tracklist.at[index, "On Spotify"] = 'No'
+        try:
+            results = spotify.search(q=query, type="track", limit=1, market=market)
+        except Exception as e:
+            logger.warning("Spotify search failed for %r: %s", query, e)
+            tracklist.at[index, "On Spotify"] = "Error"
             continue
-        else:
-            tracklist.at[index, "On Spotify"] = 'Yes'
-            id = search_output["tracks"]["items"][0]["id"]
-            
-            try:
-                track = spotify.track("spotify:track:"+id)
-            except:
-                tracklist.at[index, "On Spotify"] = 'Error'
-                continue
 
-            artists = []
-            for i in range(0, len(track["artists"])):
-                artists.append(track["artists"][i]["name"])
-            artists = ", ".join(artists)
+        matches = results["tracks"]["items"]
+        if not matches:
+            tracklist.at[index, "On Spotify"] = "No"
+            continue
 
-            track_ids.append(
-                {
-                    'Artist(s)':artists,
-                    'Track':track["name"],
-                    'ID':id
-                }
-            )
-    
-    track_ids = pd.DataFrame(track_ids)
+        tracklist.at[index, "On Spotify"] = "Yes"
+        track = matches[0]
+        artists = ", ".join(artist["name"] for artist in track["artists"])
 
-    complete_tracklist = tracklist.sort_values('Upload Time', ascending=False, ignore_index=True)
-    #complete_tracklist.to_csv('tracklist.csv', index=False)
-    print(complete_tracklist.shift()[1:])
+        track_ids.append({
+            "Artist(s)": artists,
+            "Track": track["name"],
+            "ID": track["id"],
+        })
 
-    return track_ids
+    track_ids_df = pd.DataFrame(track_ids, columns=["Artist(s)", "Track", "ID"])
 
+    complete_tracklist = tracklist.sort_values("Upload Time", ascending=False, ignore_index=True)
+    logger.info("\n%s", complete_tracklist)
 
-
+    return track_ids_df, complete_tracklist
