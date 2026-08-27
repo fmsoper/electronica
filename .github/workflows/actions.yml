@@ -37,7 +37,6 @@ jobs:
           SP_CLIENT_SECRET: ${{ secrets.SP_CLIENT_SECRET }}
           SP_USERNAME: ${{ secrets.SP_USERNAME }}
           PLAYLIST_ID: ${{ secrets.PLAYLIST_ID }}
-          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
           REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
           REDIRECT_URI: ${{ secrets.REDIRECT_URI }}
         run: python main.py
